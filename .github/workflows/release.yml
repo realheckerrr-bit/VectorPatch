@@ -48,21 +48,39 @@ jobs:
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
 
-      - name: Decode keystore
+      - name: Setup Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          INPUT_STORE_PASS: ${{ secrets.STORE_PASSWORD }}
+          INPUT_KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          INPUT_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 --decode > app/release.jks
-            echo "KEYSTORE_FILE=release.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=$INPUT_STORE_PASS" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=$INPUT_STORE_PASS" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=$INPUT_KEY_PASS" >> $GITHUB_ENV
+            echo "KEY_ALIAS=$INPUT_KEY_ALIAS" >> $GITHUB_ENV
+          else
+            echo "No secret keystore provided — generating build keystore..."
+            keytool -genkeypair -v \
+              -keystore app/release.jks \
+              -alias vectorpatch \
+              -keyalg RSA -keysize 2048 \
+              -validity 10000 \
+              -storepass android \
+              -keypass android \
+              -dname "CN=VectorPatch,O=Dev,C=US"
+            echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=vectorpatch" >> $GITHUB_ENV
           fi
+          echo "KEYSTORE_FILE=release.jks" >> $GITHUB_ENV
 
       - name: Build release APK
         run: ./gradlew :app:assembleRelease --stacktrace
         env:
-          KEYSTORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           VERSION_CODE: ${{ env.VERSION_CODE }}
           VERSION_NAME: ${{ env.VERSION_NAME }}
 
