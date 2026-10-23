@@ -59,7 +59,7 @@
         <service
             android:name=".updater.UpdateDownloadService"
             android:exported="false"
-            android:foregroundServiceType="dataTransfer" />
+            android:foregroundServiceType="dataSync" />
 
         <!-- Boot receiver for update check -->
         <receiver
