@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VectorPatch</string>
+    <string name="app_description">Modern non-root Xposed framework</string>
+    <string name="shizuku_not_running">Shizuku is not running. Start Shizuku for silent installs.</string>
+    <string name="shizuku_permission_denied">Shizuku permission denied.</string>
+    <string name="patch_success">APK patched and installed successfully!</string>
+    <string name="patch_failed">Patching failed: %1$s</string>
+    <string name="update_available">Update available: v%1$s</string>
+    <string name="update_download">Download</string>
+    <string name="update_dismiss">Later</string>
+    <string name="module_enabled">Module enabled</string>
+    <string name="module_disabled">Module disabled</string>
+    <string name="no_modules">No Xposed modules installed</string>
+    <string name="no_patchable_apps">No patchable apps found</string>
+    <string name="select_modules">Select modules to embed</string>
+    <string name="patch_mode_integrated">Integrated (standalone)</string>
+    <string name="patch_mode_manager">Manager (dynamic)</string>
+    <string name="installing">Installing…</string>
+    <string name="patching">Patching…</string>
+</resources>

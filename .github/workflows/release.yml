@@ -1,0 +1,100 @@
+name: Build & Release VectorPatch
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version name (e.g. 1.0.0)'
+        required: false
+        default: 'dev'
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant gradlew permission
+        run: chmod +x gradlew
+
+      - name: Extract version info
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION_NAME="${{ github.event.inputs.version }}"
+          else
+            VERSION_NAME="1.0.${{ github.run_number }}"
+          fi
+          VERSION_CODE=${{ github.run_number }}
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release.jks
+
+      - name: Build signed release APK
+        run: ./gradlew :app:assembleRelease --stacktrace
+        env:
+          KEYSTORE_FILE: release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          VERSION_CODE: ${{ env.VERSION_CODE }}
+          VERSION_NAME: ${{ env.VERSION_NAME }}
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f app/release.jks
+
+      - name: Rename APK
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/VectorPatch-${{ env.VERSION_NAME }}.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VectorPatch-${{ env.VERSION_NAME }}
+          path: app/build/outputs/apk/release/VectorPatch-*.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: VectorPatch v${{ env.VERSION_NAME }}
+          tag_name: ${{ github.ref_name }}
+          files: app/build/outputs/apk/release/VectorPatch-*.apk
+          generate_release_notes: true
+          body: |
+            ## VectorPatch v${{ env.VERSION_NAME }}
+
+            A modern non-root Xposed framework combining LSPatch + Vector.
+
+            ### Requirements
+            - Android 9.0+ (API 28+)
+            - Shizuku (recommended, for silent installs without root)
+            - Or Magisk/KernelSU + Zygisk (optional rooted path)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

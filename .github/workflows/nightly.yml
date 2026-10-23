@@ -1,0 +1,31 @@
+name: Nightly Debug Build
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+      - run: chmod +x gradlew
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: nightly-${{ github.run_number }}
+      - name: Upload nightly artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VectorPatch-nightly-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.VectorPatch" parent="Theme.Material3.DayNight.NoActionBar" />
+    <style name="Theme.VectorPatch.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#0F0F1A</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.VectorPatch</item>
+    </style>
+</resources>

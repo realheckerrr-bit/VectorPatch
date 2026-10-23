@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- VectorPatch logo: stylized VP letter mark -->
+    <path
+        android:fillColor="#6A35FF"
+        android:pathData="M20,20 L20,88 L36,88 L36,60 L60,88 L80,88 L52,54 L78,20 L58,20 L36,48 L36,20 Z" />
+    <path
+        android:fillColor="#00BFFF"
+        android:pathData="M82,20 L64,20 L80,54 L64,88 L82,88 L100,54 Z" />
+</vector>
