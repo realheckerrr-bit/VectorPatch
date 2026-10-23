@@ -15,8 +15,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
-      - uses: android-actions/setup-android@v3
       - run: chmod +x gradlew
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug

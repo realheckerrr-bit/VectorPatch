@@ -30,9 +30,6 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Grant gradlew permission
         run: chmod +x gradlew
 
