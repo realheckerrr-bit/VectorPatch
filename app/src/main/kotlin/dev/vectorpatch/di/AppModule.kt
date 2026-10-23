@@ -17,7 +17,7 @@ import javax.inject.Singleton
 object AppModule {
 
     @Provides @Singleton
-    fun provideShizukuManager(): ShizukuManager = ShizukuManager()
+    fun provideShizukuManager(@ApplicationContext ctx: Context): ShizukuManager = ShizukuManager(ctx)
 
     @Provides @Singleton
     fun provideLSPatcher(@ApplicationContext ctx: Context): LSPatcher = LSPatcher(ctx)

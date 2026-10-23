@@ -1,22 +1,40 @@
 package dev.vectorpatch.service
 
+import android.content.ComponentName
+import android.content.Context
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.os.IBinder
 import android.util.Log
-import dev.vectorpatch.service.IVectorPatchService
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import rikka.shizuku.Shizuku
-import rikka.shizuku.ShizukuBinderWrapper
-import rikka.shizuku.SystemServiceHelper
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ShizukuManager @Inject constructor() {
+class ShizukuManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     companion object {
         private const val TAG = "ShizukuManager"
+    }
+
+    private var userService: IVectorPatchService? = null
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            userService = IVectorPatchService.Stub.asInterface(service)
+            Log.d(TAG, "IVectorPatchService connected")
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            userService = null
+            Log.d(TAG, "IVectorPatchService disconnected")
+        }
     }
 
     val isAvailable: Boolean
@@ -24,6 +42,34 @@ class ShizukuManager @Inject constructor() {
 
     val hasPermission: Boolean
         get() = isAvailable && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+
+    init {
+        if (isAvailable) {
+            bindService()
+        }
+        Shizuku.addBinderReceivedListenerSticky {
+            bindService()
+        }
+        Shizuku.addBinderDeadListener {
+            userService = null
+        }
+    }
+
+    fun bindService() {
+        if (!hasPermission) return
+        try {
+            val args = Shizuku.UserServiceArgs(
+                ComponentName(context.packageName, VectorPatchUserService::class.java.name)
+            ).daemon(false)
+             .processNameSuffix("service")
+             .debuggable(true)
+             .version(1)
+
+            Shizuku.bindUserService(args, serviceConnection)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to bind UserService: ${e.message}")
+        }
+    }
 
     fun requestPermission() {
         if (isAvailable && !hasPermission) {
@@ -35,33 +81,21 @@ class ShizukuManager @Inject constructor() {
      * Install an APK via Shizuku (pm install) or fallback to intent-based install.
      */
     suspend fun installApk(apkFile: File) = withContext(Dispatchers.IO) {
-        if (hasPermission) {
+        val service = userService
+        if (service != null) {
             try {
-                installViaShizuku(apkFile)
+                service.installApk(apkFile.absolutePath)
+                Log.d(TAG, "Installed via VectorPatch UserService: ${apkFile.name}")
                 return@withContext
             } catch (e: Exception) {
-                Log.w(TAG, "Shizuku install failed, falling back: ${e.message}")
+                Log.w(TAG, "UserService install failed, falling back: ${e.message}")
             }
         }
-        // Fallback: use pm command via ProcessBuilder
+        // Fallback: direct process
         installViaAdbFallback(apkFile)
     }
 
-    private fun installViaShizuku(apkFile: File) {
-        // Use shell process through Shizuku to run pm install
-        Shizuku.newProcess(
-            arrayOf("pm", "install", "-r", "-d", apkFile.absolutePath),
-            null, null
-        ).also { process ->
-            val exitCode = process.waitFor()
-            val output   = process.inputStream.bufferedReader().readText()
-            if (exitCode != 0) throw RuntimeException("pm install failed ($exitCode): $output")
-            Log.d(TAG, "Installed via Shizuku: $output")
-        }
-    }
-
     private fun installViaAdbFallback(apkFile: File) {
-        // Fallback: direct process (needs INSTALL_PACKAGES on some ROMs)
         val result = ProcessBuilder("pm", "install", "-r", apkFile.absolutePath)
             .redirectErrorStream(true)
             .start()
@@ -70,8 +104,14 @@ class ShizukuManager @Inject constructor() {
     }
 
     suspend fun uninstallPackage(packageName: String) = withContext(Dispatchers.IO) {
-        if (hasPermission) {
-            Shizuku.newProcess(arrayOf("pm", "uninstall", packageName), null, null).waitFor()
+        val service = userService
+        if (service != null) {
+            try {
+                service.uninstallPackage(packageName)
+                return@withContext
+            } catch (e: Exception) {
+                Log.w(TAG, "UserService uninstall failed: ${e.message}")
+            }
         }
     }
 }
