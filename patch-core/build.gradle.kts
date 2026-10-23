@@ -21,5 +21,5 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     // APK manipulation
     implementation("com.android.tools.build:apksig:8.5.2")
-    implementation("org.smali:dexlib2:3.0.3")
+    implementation("org.smali:dexlib2:2.5.2")
 }
